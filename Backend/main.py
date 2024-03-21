@@ -1,4 +1,5 @@
 from flask import Flask, jsonify, request
+from flask_cors import CORS
 import openai
 import time
 
@@ -7,6 +8,7 @@ clientOpenAi = openai.OpenAI(api_key="")
 asisstantId = ""
 
 app = Flask(__name__)
+CORS(app)
 logged_in = False
 user = ""
 
@@ -19,7 +21,8 @@ def anasayfa():
 # Her kullanıcı'ya bir thread oluşturulacak ve id'si database'e yazılacak.
 @app.route('/signup', methods=["POST"])
 def signup():
-
+    data = request.json
+    print(data)
     return jsonify({'success': True}), 200
 
 # Kullanıcı login olabiliyor mu? Burada database'e sorgu atıp login işlemi gerçekleştirilecek.
@@ -27,6 +30,7 @@ def signup():
 @app.route('/login', methods=['POST'])
 def login():
     data = request.json
+    print(data)
     username = data.get('username')
     password = data.get('password')
     user = username
