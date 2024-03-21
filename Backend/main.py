@@ -11,7 +11,7 @@ asisstantId = ""
 
 qdrant_client = QdrantClient(
     "ead20606-651e-4ea2-a592-252e7ca6ed1e.europe-west3-0.gcp.cloud.qdrant.io",
-    api_key="KDLJ23vjZkSUbyFXOXSytHH61po__Y61dNuI5p4OsfzGP_KD9SbF5Q",
+    api_key="QdrantApi",
 )
 encoder = SentenceTransformer("all-MiniLM-L6-v2")
 
