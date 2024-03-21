@@ -1,11 +1,19 @@
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 import openai
+from qdrant_client import QdrantClient
+from sentence_transformers import SentenceTransformer
 import time
 
 
 clientOpenAi = openai.OpenAI(api_key="")
 asisstantId = ""
+
+qdrant_client = QdrantClient(
+    "ead20606-651e-4ea2-a592-252e7ca6ed1e.europe-west3-0.gcp.cloud.qdrant.io",
+    api_key="KDLJ23vjZkSUbyFXOXSytHH61po__Y61dNuI5p4OsfzGP_KD9SbF5Q",
+)
+encoder = SentenceTransformer("all-MiniLM-L6-v2")
 
 app = Flask(__name__)
 CORS(app)
@@ -50,6 +58,14 @@ def check_login():
 @app.route('/qdrantSearch', methods=['POST'])
 def qdrantSearch():
     data =request.json
+    if(check_login()== True):
+        hits = qdrant_client.search(
+            collection_name="my_books",
+            query_vector=encoder.encode(data).tolist(),
+            limit=1,
+        )
+        for hit in hits:
+            print(hit.payload, "score:", hit.score)
     return jsonify({'success': True}), 200
 
 
