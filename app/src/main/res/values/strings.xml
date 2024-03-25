@@ -1,7 +1,0 @@
-<resources>
-    <string name="app_name">Yemek Asistanım</string>
-    <string name="chat">Yemek Asistanınla Konuş</string>
-    <string name="exclude_list">İstenmeyen Malzemeler</string>
-    <string name="diet_list">Diyet Listesi</string>
-    <string name="settings">Ayarlar</string>
-</resources>
