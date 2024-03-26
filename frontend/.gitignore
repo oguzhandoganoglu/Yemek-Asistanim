@@ -16,6 +16,8 @@
 .env.development.local
 .env.test.local
 .env.production.local
+package-lock.json
+yemek-asistani-firebase-adminsdk-g0mzc-a20c15214f.json
 
 npm-debug.log*
 yarn-debug.log*
