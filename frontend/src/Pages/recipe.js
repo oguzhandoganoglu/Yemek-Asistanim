@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { useSwipeable } from 'react-swipeable';
 import { useSpring, animated } from 'react-spring';
 import './Recipe.css';
-import recipeImage from './Carbonara_6a.jpg';
 import backgroundImage from './background.jpg'
 import Modal from 'react-modal';
 
