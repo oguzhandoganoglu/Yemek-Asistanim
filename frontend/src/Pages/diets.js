@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { FaTimes } from 'react-icons/fa'; // Import close icon from react-icons
+import backgroundImage from './background.jpg'
+
 const dietsData = [
   { id: 1, name: 'Keto', definition: 'A diet high in fat and low in carbs.' },
   { id: 2, name: 'Paleo', definition: 'A diet based on the types of foods presumed to have been eaten by early humans.' },
@@ -18,7 +20,8 @@ function Diets() {
 const styles = {
   table: {
     width: '80%',
-    margin: '20px auto',
+    margin: 'auto',
+    paddingTop: '20px',
     borderCollapse: 'separate',
     borderSpacing: '0',
     boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
@@ -50,7 +53,14 @@ const styles = {
 };
 
   return (
-    <div>
+    <div style={{
+      backgroundImage:`url(${backgroundImage})`,
+      backgroundSize: "cover",
+      backgroundPosition: "center",
+      backgroundRepeat: "no-repeat",
+      width: '100vw',
+    height: '100vh'
+    }}>
       <table style={styles.table}>
         <thead>
           <tr>
