@@ -4,7 +4,28 @@ import openai
 from qdrant_client import QdrantClient
 from sentence_transformers import SentenceTransformer
 import time
+from firebase import firebase
+import firebase_admin
+from firebase_admin import credentials, auth
+#import pyrebase
 
+config = {
+    "apiKey": "AIzaSyD1dsZ590gGskokLvT40AlvpBfClaEAECk",
+    "authDomain": "yemek-asistani.firebaseapp.com",
+    "projectId": "yemek-asistani",
+    "storageBucket": "yemek-asistani.appspot.com",
+    "messagingSenderId": "335909231649",
+    "appId": "1:335909231649:web:2da483d625eed3339bd760",
+    "measurementId": "G-T86BVWV371",
+    "databaseURL": ""
+}
+
+#firebaseAuth = pyrebase.initialize_app(config)
+#auth = firebaseAuth.auth()
+firebase = firebase.FirebaseApplication('https://yemek-asistani-default-rtdb.europe-west1.firebasedatabase.app/', None)
+
+cred = credentials.Certificate('./yemek-asistani-firebase-adminsdk-g0mzc-a20c15214f.json')
+firebase_admin.initialize_app(cred)
 
 clientOpenAi = openai.OpenAI(api_key="")
 asisstantId = ""
@@ -18,33 +39,50 @@ encoder = SentenceTransformer("all-MiniLM-L6-v2")
 app = Flask(__name__)
 CORS(app)
 logged_in = False
-user = ""
+user_id = ""
 
 @app.route("/")
 def anasayfa():
-    mesaj = "Hoşgeldiniz"
-    return mesaj
+    result = firebase.get('/diyetler', None)
+    return str(result)
 
 # Burada kullanıcı kayıt işlemleri gerçekleştirilecek.
 # Her kullanıcı'ya bir thread oluşturulacak ve id'si database'e yazılacak.
-@app.route('/signup', methods=["POST"])
+@app.route('/signup', methods=['POST'])
 def signup():
     data = request.json
     print(data)
-    return jsonify({'success': True}), 200
+    if request.method == 'POST':
+        user_record = auth.create_user(email=data['email'], password=data['password'])
+        firebase.post('/users',data)
+        return jsonify({'success': True, 'uid': user_record.uid}), 201
+    else:
+        return jsonify({'success': False, 'message': "Sorry, there was an error."}), 400
 
 # Kullanıcı login olabiliyor mu? Burada database'e sorgu atıp login işlemi gerçekleştirilecek.
 # Eğer login olmuş ise "logged_in" global değişkenini true yapacak.
+# idToken ile uid aynı değere sahip değiller ama her kullanıcı için uniqueler kullanırken göz önünde bulunduralım!!!!!
 @app.route('/login', methods=['POST'])
 def login():
     data = request.json
     print(data)
-    username = data.get('username')
-    password = data.get('password')
-    user = username
-    # Kullanıcı adı ve şifrenin doğruluğunu kontrol etmek için gerekli işlemleri yapılacak
-    # Örneğin, veritabanında kullanıcıyı arayın ve şifre kontrolü yapılacak
-    return jsonify({'success': True}), 200
+    id_token = data['idToken']
+    print(id_token)
+    if id_token:
+        try:
+            # Verify the ID token and extract the user's Firebase UID
+            decoded_token = auth.verify_id_token(id_token)
+            uid = decoded_token['uid']
+            user_id = uid
+            return jsonify({'success': True, 'uid': uid}), 200
+        except auth.InvalidIdTokenError:
+            return jsonify({'success': False, 'message': 'Invalid ID token'}), 401
+        except auth.ExpiredIdTokenError:
+            return jsonify({'success': False, 'message': 'Expired ID token'}), 401
+        except Exception as e:
+            return jsonify({'success': False, 'message': 'Authentication error'}), 500
+    else:
+        return jsonify({'success': False, 'message': 'No idToken provided'}), 400
 
 
 # Burada kullanıcının login olup olmadığını kontrol etmek için bir istek kullanıyoruz.
@@ -110,6 +148,18 @@ def openAiRequest():
     messages= clientOpenAi.beta.threads.messages.list(thread_id=thread_id)
     new_message = messages.data[0].content[0].text.value
     return new_message
+
+@app.route('/submit', methods=['POST'])
+def submit():
+  if request.method == 'POST' and len(dict(request.form)) > 0:
+    userdata = dict(request.form)
+    name = userdata["name"]
+    description = userdata["description"]
+    new_data = {"name": name, "description": description}
+    firebase.post("/users/diets", new_data)
+    return "Thank you!"
+  else:
+    return "Sorry, there was an error."
 
 if __name__ == "__main__":
     app.run(debug=True)
