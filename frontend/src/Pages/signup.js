@@ -1,7 +1,11 @@
 import React, { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import axios from 'axios';
 
+
 const Signup = () => {
+  const navigate = useNavigate()
+
   const [formData, setFormData] = useState({
     username: '',
     email: '',
@@ -44,7 +48,7 @@ const Signup = () => {
 
   const handleSubmit = async(e) => {
     e.preventDefault();
-    const { username, email, password, confirmPassword, allergies } = formData;
+    const { username, email, password, confirmPassword, allergies} = formData;
     try{
       const response = await axios.post('http://127.0.0.1:5000/signup', {
         username,
@@ -53,6 +57,8 @@ const Signup = () => {
         allergies
       });
       console.log('Registration successful:', response.data);
+      if(response.data)
+        navigate('/')
     }
     catch (error){
       console.log('Registration failed: ', error);
@@ -79,7 +85,9 @@ const Signup = () => {
         sesame: false,
         celery: false,
         sulphites: false
-      }
+      },
+      diets:null,
+      thread_id:null
     });
   };
 
