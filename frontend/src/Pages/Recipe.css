@@ -1,0 +1,125 @@
+.Recipe {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    background-color: #f7f7f700;
+    margin: 0;
+    padding: 0;
+  }
+  
+  .recipe-card {
+    width: 600px;
+    border-radius: 20px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    background-color: #fff;
+    overflow: hidden;
+    text-align: center;
+    margin: auto; /* Centers the card in the available space */
+}
+  
+  .recipe-card img {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+  }
+  
+  .recipe-card h3 {
+    margin: 0;
+    padding: 20px;
+    background-color: rgb(31, 41, 55);
+    color: #fff;
+    font-size: 24px;
+  }
+  
+  .recipe-card p {
+    padding: 0 20px 20px;
+    background-color: rgb(31, 41, 55);
+    font-size: 13px;
+    color: #fff;
+  }
+  
+  .buttons {
+    display: flex;
+    justify-content: space-around;
+    background-color: rgb(31, 41, 55);
+    padding-bottom: 20px;
+  }
+  
+  .yes-button,
+  .no-button, .submit-button, .suggest-button {
+    border: none;
+    padding: 10px 20px;
+    border-radius: 20px;
+    font-size: 16px;
+    cursor: pointer;
+    outline: none;
+  }
+
+  .suggest-button {
+    border: none;
+    padding: 10px 20px;
+    border-radius: 20px;
+    font-size: 22px;
+    cursor: pointer;
+    outline: none;
+  }
+  
+  .yes-button {
+    background-color: #4caf50;
+    color: #fff;
+  }
+  
+  .no-button {
+    background-color: #f44336;
+    color: #fff;
+  }
+
+  .submit-button, .suggest-button {
+    background-color: rgb(31, 41, 55);
+    color: #fff;
+  }
+
+  .modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.75);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  
+  .modal-content {
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    width: 50%;
+    max-width: 500px; /* Adjust the width as needed */
+  }
+  
+  .close-modal-button {
+    float: right;
+    border: none;
+    background: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+  }
+  
+  /* React Modal default styles override */
+  .ReactModal__Overlay {
+    opacity: 0;
+    transition: opacity 200ms ease-in-out;
+  }
+  
+  .ReactModal__Overlay--after-open {
+    opacity: 1;
+  }
+  
+  .ReactModal__Overlay--before-close {
+    opacity: 0;
+  }
+  

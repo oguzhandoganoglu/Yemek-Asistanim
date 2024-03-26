@@ -1,8 +1,26 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
+import { initializeApp } from 'firebase/app';
+import { getAuth, signInWithEmailAndPassword } from "firebase/auth";
+
+const firebaseConfig = {
+    apiKey: "AIzaSyD1dsZ590gGskokLvT40AlvpBfClaEAECk",
+    authDomain: "yemek-asistani.firebaseapp.com",
+    databaseURL: "https://yemek-asistani-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "yemek-asistani",
+    storageBucket: "yemek-asistani.appspot.com",
+    messagingSenderId: "335909231649",
+    appId: "1:335909231649:web:2da483d625eed3339bd760",
+    measurementId: "G-T86BVWV371"
+};
+
+const my_firebase = initializeApp(firebaseConfig);
+
 const Login = () => {
+  const navigate = useNavigate()
+  const auth = getAuth();
   const [formData, setFormData] = useState({
     email: '',
     password: ''
@@ -19,10 +37,37 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await axios.post('http://127.0.0.1:5000/login', formData);
-      console.log(response.data); // Giriş başarılı ise backend'den dönen veriyi işleyebilirsiniz
-      // Giriş başarılı ise yönlendirme yapabilirsiniz, örneğin:
-      // history.push('/dashboard');
+      
+      //const response = await axios.post('http://127.0.0.1:5000/login', formData);
+      //console.log(response.data);
+      //if (response.data.success) {
+        signInWithEmailAndPassword(auth, formData.email, formData.password)
+        .then(async (userCredential) => {
+          // Signed in 
+          const user = userCredential.user;
+          const uid = user.uid;
+          auth.currentUser.getIdToken(true).then(function(idToken) {
+            formData['idToken'] = idToken
+          }).catch(function(error) {
+            console.error('Login failed:', error);
+          });;
+          try {
+            formData['uid'] = uid
+            const response = await axios.post('http://127.0.0.1:5000/login', formData);
+            if(response.data){
+              navigate('/');
+            }
+          } catch (error) {
+            console.error('Login failed:', error);
+          }
+          // ...
+        })
+        .catch((error) => {
+          const errorCode = error.code;
+          const errorMessage = error.message;
+        });
+        
+      //}
     } catch (error) {
       console.error('Login failed:', error);
     }

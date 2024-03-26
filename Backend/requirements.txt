@@ -1,2 +1,9 @@
 openai
 flask
+flask_cors
+time
+qdrant_client
+sentence_transformers
+flask_cors
+firebase_admin
+firebase
