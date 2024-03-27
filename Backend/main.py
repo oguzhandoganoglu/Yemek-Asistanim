@@ -153,6 +153,7 @@ def qdrant():
 
 @app.route('/openAiReq')
 def openAiRequest():
+    """
     thread = clientOpenAi.beta.threads.create(
         messages = [
         {
@@ -161,9 +162,29 @@ def openAiRequest():
         } 
         ]
     )
+    """
+    global user_id
+    result = firebase.get(f'users/kPmamX4PBhez5BuETulPC4lprqu1',None)
+    message = ""
+    userDiets=result['diets'] # veri tabanında ilgili kişinin diyetlerine böyle ulaşabiliyoruz
+    diet_names_string = ""
+    for dietKey, dietValue in userDiets.items(): # Burada database'de bulunan bütün dietlerin ismini alıyoruz.
+        dietName = dietValue['name']
+        print("-----------------")
+        diet_names_string = dietName + " , "
+            
+    message = message + diet_names_string
+    userAllergies = result['allergies']
+    trueUserAllergies = [key for key, value in userAllergies.items() if value] # Burada sadece true değere sahip 
+    allergies_string = ", ".join(trueUserAllergies)
+    message = message + allergies_string
+    print(message)
+    #sprint(result)
+
+    return "selam"
     # burada thread_id bilgisi database'den alınacak. Daha sonrasında aşağıdaki gibi o thread retrive edilecek.
     # thread = client.beta.threads.retrieve(thread_id)
-
+    """"
     thread_id = thread.id
     message = "Keto Diet"
     message = clientOpenAi.beta.threads.messages.create(
@@ -182,6 +203,8 @@ def openAiRequest():
     messages= clientOpenAi.beta.threads.messages.list(thread_id=thread_id)
     new_message = messages.data[0].content[0].text.value
     return new_message
+    """
+
 
 @app.route('/submit', methods=['POST'])
 def submit():
