@@ -20,6 +20,9 @@ config = {
     "databaseURL": ""
 }
 
+embedding_model = "text-embedding-3-small"
+collection_name = "yemek_asistani"
+
 #firebaseAuth = pyrebase.initialize_app(config)
 #auth = firebaseAuth.auth()
 firebase = firebase.FirebaseApplication('https://yemek-asistani-default-rtdb.europe-west1.firebasedatabase.app/', None)
@@ -31,10 +34,9 @@ clientOpenAi = openai.OpenAI(api_key="")
 asisstantId = ""
 
 qdrant_client = QdrantClient(
-    "ead20606-651e-4ea2-a592-252e7ca6ed1e.europe-west3-0.gcp.cloud.qdrant.io",
-    api_key="QdrantApi",
+    url="", 
+    api_key="",
 )
-encoder = SentenceTransformer("all-MiniLM-L6-v2")
 
 app = Flask(__name__)
 CORS(app)
@@ -43,7 +45,18 @@ user_id = ""
 
 @app.route("/")
 def anasayfa():
-    result = firebase.get('/diyetler', None)
+    result = firebase.get('/users', None)
+    print(result)
+    password_123456_users = []
+    for user_id, user_info in result.items():
+        if 'email' in user_info and user_info['email'] == 'oguzhan1455.fb@gmail.com':
+            password_123456_users.append(user_info)
+
+    # Sonuçları yazdırma
+    for user in password_123456_users:
+        print("Username:", user.get('username', 'N/A'))
+        print("Email:", user.get('email', 'N/A'))
+        print("---------------------------")
     return str(result)
 
 # Burada kullanıcı kayıt işlemleri gerçekleştirilecek.
@@ -93,24 +106,34 @@ def check_login():
 
 # Burada qdrant'ta search işlemlerini yapacak. Eğer benzer bir veri görürse
 # ve bu veri kullanıcının dataseti'nde yok ise ekleyecek var ise bir şey yapmayacak.
-@app.route('/qdrantSearch', methods=['POST'])
+@app.route('/qdrantSearch', methods=['GET'])
 def qdrantSearch():
-    data =request.json
-    if(check_login()== True):
-        hits = qdrant_client.search(
-            collection_name="my_books",
-            query_vector=encoder.encode(data).tolist(),
-            limit=1,
+    # data =request.json
+    hits= qdrant_client.search(
+        collection_name=collection_name,
+        query_vector=clientOpenAi.embeddings.create(
+            input=["excludes meat, poultry, and seafood"],
+            model=embedding_model,
         )
-        for hit in hits:
+        .data[0]
+        .embedding,
+        limit=1
+    )
+    for hit in hits:
+        if(hit.score>0.5):
             print(hit.payload, "score:", hit.score)
+            nameOfDiet=hit.payload['text']
+            indexOfDiet = nameOfDiet.find("diet")
+            nameOfDiet = nameOfDiet[:indexOfDiet]
+            nameOfDiet = nameOfDiet + "diet"
+            print(nameOfDiet)
     return jsonify({'success': True}), 200
 
 
 # Burada kullanıcı login olmuş ise eğer onun database'inden alışkanlıklarını almak için kullanacağız.
-@app.route('/qdrantGetHabits')
+@app.route('/fireBaseDiyetPull')
 def qdrant():
-    mesaj= "qdrant çalışıyor."
+    mesaj= "firebase'den diyetler çekilecek."
     return mesaj
 
 # Burada openAi'a tarif için istek atılıyor. Tabiki kullanıcının alışkanlıkları veritabanından alınacak
