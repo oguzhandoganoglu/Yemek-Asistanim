@@ -110,6 +110,7 @@ def check_login():
 # ve bu veri kullanıcının dataseti'nde yok ise ekleyecek var ise bir şey yapmayacak.
 @app.route('/qdrantSearch', methods=['GET'])
 def qdrantSearch():
+    
     # data =request.json
     hits= qdrant_client.search(
         collection_name=collection_name,
@@ -122,6 +123,7 @@ def qdrantSearch():
         limit=1
 
     )
+    
     for hit in hits:
         if(hit.score>0.5):
             print(hit.payload, "score:", hit.score)
@@ -131,14 +133,11 @@ def qdrantSearch():
             nameOfDiet = nameOfDiet[:indexOfDiet]
             nameOfDiet = nameOfDiet + "diet"
             print(nameOfDiet)
-            data = {
-                'name': nameOfDiet,
-                'description': description
-            }
             global user_id
             print(user_id)
-            firebase.put(f'users/{user_id}/diets','diet',data)
+            firebase.put(f'users/kPmamX4PBhez5BuETulPC4lprqu1/diets',nameOfDiet,description)
     return jsonify({'success': True}), 200
+    
 
 
 # Burada kullanıcı login olmuş ise eğer onun database'inden alışkanlıklarını almak için kullanacağız.
@@ -153,6 +152,7 @@ def qdrant():
 
 @app.route('/openAiReq')
 def openAiRequest():
+    """
     thread = clientOpenAi.beta.threads.create(
         messages = [
         {
@@ -161,10 +161,55 @@ def openAiRequest():
         } 
         ]
     )
-    # burada thread_id bilgisi database'den alınacak. Daha sonrasında aşağıdaki gibi o thread retrive edilecek.
-    # thread = client.beta.threads.retrieve(thread_id)
+    """
+    global user_id
+    result = firebase.get(f'users/kPmamX4PBhez5BuETulPC4lprqu1',None)
+    diet_names_string = ""
+    print(result['diets'])
+    for key, value in result['diets'].items():
+        diet_names_string = diet_names_string + " , " + key
+    print(diet_names_string)
+    userAllergies = result['allergies']
+    trueUserAllergies = [key for key, value in userAllergies.items() if value] # Burada sadece true değere sahip 
+    allergies_string = ", ".join(trueUserAllergies)
+    allergies_string = "allergic to " + allergies_string
+    allergiDietMessage = diet_names_string + allergies_string
+    print(allergiDietMessage)
+    print("-------Thread------")
+    if 'threadId' in result:
+        print("Anahtar bulundu.")
+        threadId = result['threadId']
+        print(threadId)
+        print("-----------------")
+        # burada thread_id bilgisi database'den alınacak. Daha sonrasında aşağıdaki gibi o thread retrive edilecek.
+        thread = clientOpenAi.beta.threads.retrieve(threadId)
+    else:
+        print("Anahtar bulunamadı.")
+        thread = clientOpenAi.beta.threads.create()
+        threadId = thread.id
+        print(threadId)
+        firebase.put(f'users/kPmamX4PBhez5BuETulPC4lprqu1/','threadId',threadId)    
+    print("-------Thread------")
+    print(allergiDietMessage)
+    message = clientOpenAi.beta.threads.messages.create(
+        thread_id=threadId,
+        role="user",
+        content=allergiDietMessage
+    )
+    run = clientOpenAi.beta.threads.runs.create(
+        thread_id=threadId,
+        assistant_id=asisstantId
+    )
+    while run.status != "completed":
+        time.sleep(0.5)
+        run = clientOpenAi.beta.threads.runs.retrieve(thread_id=threadId, run_id=run.id)
+    responses= clientOpenAi.beta.threads.messages.list(thread_id=threadId)
+    new_message = responses.data[0].content[0].text.value
+    
+    return new_message
 
-    thread_id = thread.id
+    
+""""
     message = "Keto Diet"
     message = clientOpenAi.beta.threads.messages.create(
         thread_id=thread_id,
@@ -182,6 +227,8 @@ def openAiRequest():
     messages= clientOpenAi.beta.threads.messages.list(thread_id=thread_id)
     new_message = messages.data[0].content[0].text.value
     return new_message
+"""
+
 
 @app.route('/submit', methods=['POST'])
 def submit():
