@@ -41,7 +41,7 @@ qdrant_client = QdrantClient(
 app = Flask(__name__)
 CORS(app)
 logged_in = False
-user_id = ""
+user_id = None
 
 @app.route("/")
 def anasayfa():
@@ -80,12 +80,14 @@ def login():
     data = request.json
     print(data)
     id_token = data['idToken']
-    print(id_token)
+
     if id_token:
         try:
             # Verify the ID token and extract the user's Firebase UID
             decoded_token = auth.verify_id_token(id_token)
             uid = decoded_token['uid']
+            global user_id
+            print("uid: " + uid)
             user_id = uid
             return jsonify({'success': True, 'uid': uid}), 200
         except auth.InvalidIdTokenError:
@@ -118,15 +120,24 @@ def qdrantSearch():
         .data[0]
         .embedding,
         limit=1
+
     )
     for hit in hits:
         if(hit.score>0.5):
             print(hit.payload, "score:", hit.score)
             nameOfDiet=hit.payload['text']
+            description = nameOfDiet
             indexOfDiet = nameOfDiet.find("diet")
             nameOfDiet = nameOfDiet[:indexOfDiet]
             nameOfDiet = nameOfDiet + "diet"
             print(nameOfDiet)
+            data = {
+                'name': nameOfDiet,
+                'description': description
+            }
+            global user_id
+            print(user_id)
+            firebase.put(f'users/{user_id}/diets','diet',data)
     return jsonify({'success': True}), 200
 
 
