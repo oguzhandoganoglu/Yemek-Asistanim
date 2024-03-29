@@ -208,28 +208,6 @@ def openAiRequest():
     
     return new_message
 
-    
-""""
-    message = "Keto Diet"
-    message = clientOpenAi.beta.threads.messages.create(
-        thread_id=thread_id,
-        role="user",
-        content=message
-    )
-    run = clientOpenAi.beta.threads.runs.create(
-        thread_id=thread_id,
-        assistant_id=asisstantId
-    )
-    while run.status != "completed":
-        time.sleep(0.5)
-        run = clientOpenAi.beta.threads.runs.retrieve(thread_id=thread_id, run_id=run.id)
-    
-    messages= clientOpenAi.beta.threads.messages.list(thread_id=thread_id)
-    new_message = messages.data[0].content[0].text.value
-    return new_message
-"""
-
-
 @app.route('/submit', methods=['POST'])
 def submit():
   if request.method == 'POST' and len(dict(request.form)) > 0:
