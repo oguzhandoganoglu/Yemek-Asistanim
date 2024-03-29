@@ -47,16 +47,6 @@ user_id = None
 def anasayfa():
     result = firebase.get('/users', None)
     print(result)
-    password_123456_users = []
-    for user_id, user_info in result.items():
-        if 'email' in user_info and user_info['email'] == 'oguzhan1455.fb@gmail.com':
-            password_123456_users.append(user_info)
-
-    # Sonuçları yazdırma
-    for user in password_123456_users:
-        print("Username:", user.get('username', 'N/A'))
-        print("Email:", user.get('email', 'N/A'))
-        print("---------------------------")
     return str(result)
 
 # Burada kullanıcı kayıt işlemleri gerçekleştirilecek.
@@ -67,7 +57,8 @@ def signup():
     print(data)
     if request.method == 'POST':
         user_record = auth.create_user(email=data['email'], password=data['password'])
-        firebase.post('/users',data)
+        firebase.put(f'/users', user_record.uid, data)
+
         return jsonify({'success': True, 'uid': user_record.uid}), 201
     else:
         return jsonify({'success': False, 'message': "Sorry, there was an error."}), 400
@@ -111,11 +102,13 @@ def check_login():
 @app.route('/qdrantSearch', methods=['GET'])
 def qdrantSearch():
     
-    # data =request.json
+    reason = request.args.get('dislikeReason')
+    print("reason: "+ reason)
     hits= qdrant_client.search(
         collection_name=collection_name,
         query_vector=clientOpenAi.embeddings.create(
-            input=["excludes meat, poultry, and seafood"],
+            input=[reason],
+
             model=embedding_model,
         )
         .data[0]
@@ -135,16 +128,33 @@ def qdrantSearch():
             print(nameOfDiet)
             global user_id
             print(user_id)
-            firebase.put(f'users/kPmamX4PBhez5BuETulPC4lprqu1/diets',nameOfDiet,description)
+            firebase.put(f'users/DKwLD419QXVzTpNRANDa0zzefLs2/diets',nameOfDiet,description)
+
     return jsonify({'success': True}), 200
     
 
 
 # Burada kullanıcı login olmuş ise eğer onun database'inden alışkanlıklarını almak için kullanacağız.
-@app.route('/fireBaseDiyetPull')
-def qdrant():
-    mesaj= "firebase'den diyetler çekilecek."
-    return mesaj
+@app.route('/fireBaseDiyetPull', methods=['GET'])
+def pullDiets():
+    result = firebase.get(f'users/DKwLD419QXVzTpNRANDa0zzefLs2',None)
+    print(result['diets'])
+    
+    return result['diets']
+
+# burayı bilerek GET yaptım düzeltmeyin DELETE yazınca çalışmıyor
+@app.route('/dietRemove/<dietName>', methods=['GET'])
+def removeTheDiet(dietName):
+    try:
+        # Attempt to delete the diet from Firebase
+        result = firebase.delete('users/DKwLD419QXVzTpNRANDa0zzefLs2/diets/',dietName)
+        print(result)
+        return jsonify(result), 200
+    except Exception as e:
+        # Print the error if something goes wrong
+        print(f"An error occurred: {e}")
+        return jsonify({"error": str(e)}), 500
+
 
 # Burada openAi'a tarif için istek atılıyor. Tabiki kullanıcının alışkanlıkları veritabanından alınacak
 # ve bu verilerde isteğe eklenecek ve istek atılacaktır. 
@@ -163,17 +173,18 @@ def openAiRequest():
     )
     """
     global user_id
-    result = firebase.get(f'users/kPmamX4PBhez5BuETulPC4lprqu1',None)
-    diet_names_string = ""
+    result = firebase.get(f'users/DKwLD419QXVzTpNRANDa0zzefLs2',None)
+    diet_names_string = "this user follows "
     print(result['diets'])
-    for key, value in result['diets'].items():
-        diet_names_string = diet_names_string + " , " + key
-    print(diet_names_string)
+    diet_names = [key for key, value in result['diets'].items()]
+    diet_names_string = ', '.join(diet_names)
+
     userAllergies = result['allergies']
     trueUserAllergies = [key for key, value in userAllergies.items() if value] # Burada sadece true değere sahip 
     allergies_string = ", ".join(trueUserAllergies)
     allergies_string = "allergic to " + allergies_string
-    allergiDietMessage = diet_names_string + allergies_string
+    allergiDietMessage = diet_names_string +" and is "+ allergies_string
+
     print(allergiDietMessage)
     print("-------Thread------")
     if 'threadId' in result:
@@ -188,7 +199,8 @@ def openAiRequest():
         thread = clientOpenAi.beta.threads.create()
         threadId = thread.id
         print(threadId)
-        firebase.put(f'users/kPmamX4PBhez5BuETulPC4lprqu1/','threadId',threadId)    
+        firebase.put(f'users/DKwLD419QXVzTpNRANDa0zzefLs2/','threadId',threadId)    
+
     print("-------Thread------")
     print(allergiDietMessage)
     message = clientOpenAi.beta.threads.messages.create(
@@ -205,7 +217,7 @@ def openAiRequest():
         run = clientOpenAi.beta.threads.runs.retrieve(thread_id=threadId, run_id=run.id)
     responses= clientOpenAi.beta.threads.messages.list(thread_id=threadId)
     new_message = responses.data[0].content[0].text.value
-    
+
     return new_message
 
     

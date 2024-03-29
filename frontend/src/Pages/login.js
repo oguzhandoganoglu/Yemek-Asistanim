@@ -46,20 +46,20 @@ const Login = () => {
           // Signed in 
           const user = userCredential.user;
           const uid = user.uid;
-          auth.currentUser.getIdToken(true).then(function(idToken) {
+          auth.currentUser.getIdToken(true).then(async function(idToken) {
             formData['idToken'] = idToken
+            try {
+              formData['uid'] = uid
+              const response = await axios.post('http://127.0.0.1:5000/login', formData);
+              if(response.data){
+                navigate('/');
+              }
+            } catch (error) {
+              console.error('Login failed:', error);
+            }
           }).catch(function(error) {
             console.error('Login failed:', error);
           });;
-          try {
-            formData['uid'] = uid
-            const response = await axios.post('http://127.0.0.1:5000/login', formData);
-            if(response.data){
-              navigate('/');
-            }
-          } catch (error) {
-            console.error('Login failed:', error);
-          }
           // ...
         })
         .catch((error) => {
