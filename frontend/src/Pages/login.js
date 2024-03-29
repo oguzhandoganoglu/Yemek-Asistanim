@@ -60,7 +60,6 @@ const Login = () => {
           }).catch(function(error) {
             console.error('Login failed:', error);
           });;
-          
           // ...
         })
         .catch((error) => {

@@ -47,7 +47,6 @@ user_id = None
 def anasayfa():
     result = firebase.get('/users', None)
     print(result)
-    
     return str(result)
 
 # Burada kullanıcı kayıt işlemleri gerçekleştirilecek.
@@ -59,6 +58,7 @@ def signup():
     if request.method == 'POST':
         user_record = auth.create_user(email=data['email'], password=data['password'])
         firebase.put(f'/users', user_record.uid, data)
+
         return jsonify({'success': True, 'uid': user_record.uid}), 201
     else:
         return jsonify({'success': False, 'message': "Sorry, there was an error."}), 400
@@ -108,6 +108,7 @@ def qdrantSearch():
         collection_name=collection_name,
         query_vector=clientOpenAi.embeddings.create(
             input=[reason],
+
             model=embedding_model,
         )
         .data[0]
@@ -117,7 +118,6 @@ def qdrantSearch():
     )
     
     for hit in hits:
-        print("hit:", hit.payload)
         if(hit.score>0.5):
             print(hit.payload, "score:", hit.score)
             nameOfDiet=hit.payload['text']
@@ -129,6 +129,7 @@ def qdrantSearch():
             global user_id
             print(user_id)
             firebase.put(f'users/DKwLD419QXVzTpNRANDa0zzefLs2/diets',nameOfDiet,description)
+
     return jsonify({'success': True}), 200
     
 
@@ -154,6 +155,7 @@ def removeTheDiet(dietName):
         print(f"An error occurred: {e}")
         return jsonify({"error": str(e)}), 500
 
+
 # Burada openAi'a tarif için istek atılıyor. Tabiki kullanıcının alışkanlıkları veritabanından alınacak
 # ve bu verilerde isteğe eklenecek ve istek atılacaktır. 
 
@@ -176,11 +178,13 @@ def openAiRequest():
     print(result['diets'])
     diet_names = [key for key, value in result['diets'].items()]
     diet_names_string = ', '.join(diet_names)
+
     userAllergies = result['allergies']
     trueUserAllergies = [key for key, value in userAllergies.items() if value] # Burada sadece true değere sahip 
     allergies_string = ", ".join(trueUserAllergies)
     allergies_string = "allergic to " + allergies_string
-    allergiDietMessage = diet_names_string +"cand is "+ allergies_string
+    allergiDietMessage = diet_names_string +" and is "+ allergies_string
+
     print(allergiDietMessage)
     print("-------Thread------")
     if 'threadId' in result:
@@ -196,6 +200,7 @@ def openAiRequest():
         threadId = thread.id
         print(threadId)
         firebase.put(f'users/DKwLD419QXVzTpNRANDa0zzefLs2/','threadId',threadId)    
+
     print("-------Thread------")
     print(allergiDietMessage)
     message = clientOpenAi.beta.threads.messages.create(
@@ -212,7 +217,7 @@ def openAiRequest():
         run = clientOpenAi.beta.threads.runs.retrieve(thread_id=threadId, run_id=run.id)
     responses= clientOpenAi.beta.threads.messages.list(thread_id=threadId)
     new_message = responses.data[0].content[0].text.value
-    print(new_message)
+
     return new_message
 
     

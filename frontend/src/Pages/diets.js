@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { FaTimes } from 'react-icons/fa'; // Import close icon from react-icons
 import backgroundImage from './background.jpg'
@@ -154,6 +155,7 @@ const styles = {
               <td style={styles.tdX}>
                 <button onClick={() => handleRemoveClick(diet.name)} style={{ border: 'none', background: 'none' }}>
                   <FaTimes color='red' size='25px'/> {/* This is the close icon */}
+
                 </button>
               </td>
             </tr>

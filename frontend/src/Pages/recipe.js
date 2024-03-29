@@ -36,6 +36,7 @@ function Recipe() {
   const [recipeData, setRecipeData] = useState({ title: '', instructions:[], ingredients:[] }); // State to store recipe data
   const [isLoading, setIsLoading] = useState(false); 
 
+
   // Define the animation for the button
   const [buttonStyle, setButtonStyle] = useSpring(() => ({
     transform: 'scale(1)',
@@ -143,6 +144,7 @@ function Recipe() {
       }
       {!showRecipe && !isLoading && (
         <animated.div style={{ ...buttonAppearStyle, display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+
           <animated.button
             style={buttonStyle}
             onMouseEnter={() => setButtonStyle({ transform: 'scale(1.1)' })}
@@ -182,6 +184,7 @@ function Recipe() {
             </div>
             <div className="buttons">
               <button onClick={handleLike} className="yes-button">Yes</button>
+
               <button onClick={handleDislike} className="no-button">No</button>
             </div>
           </div>
@@ -203,6 +206,7 @@ function Recipe() {
             onChange={(e) => setDislikeReason(e.target.value)}
           />
           <button className='submit-button' onClick={handleSubmit}>Submit</button>
+
         </Modal>
         </div>
       }
