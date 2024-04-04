@@ -55,10 +55,23 @@ function Recipe() {
   const handleButtonClick = () => {
     setIsLoading(true);
     axios.get('http://127.0.0.1:5000/openAiReq').then(response => {
+      const recipeInfo = response.data.Recipe;
+      const ingredients = recipeInfo
+        .filter(item => item.Ingredient)
+        .map(item => `${item.Ingredient} ${item.Quantity}`);
+      
+      const instructions = recipeInfo
+      .find(item => item.Instructions)
+      .Instructions.map(instruction => {
+        const stepNumber = Object.keys(instruction)[0];
+        const stepInstruction = instruction[stepNumber];
+        return `${stepNumber}: ${stepInstruction}`;
+      });
+
       setRecipeData({
         title: response.data.Meal,
-        instructions: response.data.Recipe.Instructions,
-        ingredients: response.data.Recipe.Ingredients
+        instructions: instructions,
+        ingredients: ingredients
       });
       setIsLoading(false);
       setShowRecipe(true);
@@ -170,7 +183,7 @@ function Recipe() {
             <div style={{backgroundColor:"rgb(31, 41, 55)"}}>
             <h4 style={{paddingLeft:"20px", color:"#fff"}}>Ingredients:</h4>
             <ul style={{paddingLeft:"30px", paddingRight:"10px", color:"#fff"}}>
-              {recipeData.ingredients.map((ingredient, index) => (
+              {recipeData && recipeData.ingredients && recipeData.ingredients.map((ingredient, index) => (
                 <li key={index}>{ingredient}</li>
               ))}
             </ul>
