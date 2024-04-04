@@ -5,7 +5,7 @@ import Login from './login'
 function Profile() {
   return (
     <div>
-      <Login/>
+      Profile
     </div>
   )
 }

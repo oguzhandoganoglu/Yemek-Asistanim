@@ -1,24 +1,10 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-
-import { initializeApp } from 'firebase/app';
 import { getAuth, signInWithEmailAndPassword } from "firebase/auth";
+import backgroundImage from './login_background.png'
 
-const firebaseConfig = {
-    apiKey: "AIzaSyD1dsZ590gGskokLvT40AlvpBfClaEAECk",
-    authDomain: "yemek-asistani.firebaseapp.com",
-    databaseURL: "https://yemek-asistani-default-rtdb.europe-west1.firebasedatabase.app",
-    projectId: "yemek-asistani",
-    storageBucket: "yemek-asistani.appspot.com",
-    messagingSenderId: "335909231649",
-    appId: "1:335909231649:web:2da483d625eed3339bd760",
-    measurementId: "G-T86BVWV371"
-};
-
-const my_firebase = initializeApp(firebaseConfig);
-
-const Login = () => {
+const Login = ({ onLoginSuccess }) => {
   const navigate = useNavigate()
   const auth = getAuth();
   const [formData, setFormData] = useState({
@@ -46,17 +32,22 @@ const Login = () => {
           // Signed in 
           const user = userCredential.user;
           const uid = user.uid;
+          
           auth.currentUser.getIdToken(true).then(async function(idToken) {
-            formData['idToken'] = idToken
-            try {
-              formData['uid'] = uid
-              const response = await axios.post('http://127.0.0.1:5000/login', formData);
-              if(response.data){
-                navigate('/');
+            setTimeout(async function() {
+              formData['idToken'] = idToken
+              try {
+                formData['uid'] = uid
+                const response = await axios.post('http://127.0.0.1:5000/login', formData);
+                if(response.data){
+                  localStorage.setItem('user_id', uid);
+                  onLoginSuccess();
+                  navigate('/');
+                }
+              } catch (error) {
+                console.error('Login failed:', error);
               }
-            } catch (error) {
-              console.error('Login failed:', error);
-            }
+            }, 500);
           }).catch(function(error) {
             console.error('Login failed:', error);
           });;
@@ -74,10 +65,17 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8" style={{
+      backgroundImage:`url(${backgroundImage})`,
+      backgroundSize: "cover",
+      backgroundPosition: "center",
+      backgroundRepeat: "no-repeat",
+      width: '100vw',
+    height: '100vh'
+    }}>
       <div className="max-w-md w-full space-y-8">
         <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">Log in</h2>
+          <h2 className="mt-6 text-center text-3xl font-bold text-gray-900" style={{color:"#97978D"}}>Log in</h2>
         </div>
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           <div className="rounded-md shadow-sm -space-y-px">
@@ -94,7 +92,7 @@ const Login = () => {
           <div className="flex items-center justify-between">
             <div className="flex items-center">
               <input id="remember_me" name="remember_me" type="checkbox" className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded" />
-              <label htmlFor="remember_me" className="ml-2 block text-sm text-gray-900">
+              <label htmlFor="remember_me" className="ml-2 block text-sm text-gray-900" style={{color:"#fff"}}>
                 Remember me
               </label>
             </div>
@@ -107,7 +105,7 @@ const Login = () => {
           </div>
 
           <div>
-            <button type="submit" className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+            <button type="submit" className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" style={{backgroundColor:"#97978D", color:"#1f2937"}}>
               Log in
             </button>
           </div>

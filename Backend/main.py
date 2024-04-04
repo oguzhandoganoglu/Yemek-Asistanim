@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, session
 from flask_cors import CORS
 import openai
 from qdrant_client import QdrantClient
@@ -39,9 +39,10 @@ qdrant_client = QdrantClient(
 )
 
 app = Flask(__name__)
-CORS(app)
+app.secret_key = 'yemek_asistanim_secret_key'
+CORS(app, supports_credentials=True)
 logged_in = False
-user_id = None
+app.config.update(SESSION_COOKIE_SAMESITE="None", SESSION_COOKIE_SECURE=True)
 
 @app.route("/")
 def anasayfa():
@@ -54,11 +55,16 @@ def anasayfa():
 @app.route('/signup', methods=['POST'])
 def signup():
     data = request.json
+    data['diets'] = [""]
     print(data)
     if request.method == 'POST':
-        user_record = auth.create_user(email=data['email'], password=data['password'])
-        firebase.put(f'/users', user_record.uid, data)
-
+        try:
+            user_record = auth.create_user(email=data['email'], password=data['password'])
+            firebase.put(f'/users', user_record.uid, data)
+        except auth.EmailAlreadyExistsError:
+            return jsonify({'success': False, 'message': 'This email already exists.'}), 401
+        except Exception as e:
+            return jsonify({'success': False, 'message': 'Sign-up error'}), 500
         return jsonify({'success': True, 'uid': user_record.uid}), 201
     else:
         return jsonify({'success': False, 'message': "Sorry, there was an error."}), 400
@@ -77,25 +83,33 @@ def login():
             # Verify the ID token and extract the user's Firebase UID
             decoded_token = auth.verify_id_token(id_token)
             uid = decoded_token['uid']
-            global user_id
+            session['user_id'] = uid
+            print("session in login: " + str(session))
             print("uid: " + uid)
-            user_id = uid
             return jsonify({'success': True, 'uid': uid}), 200
-        except auth.InvalidIdTokenError:
-            return jsonify({'success': False, 'message': 'Invalid ID token'}), 401
+        except auth.InvalidIdTokenError as e:
+            return jsonify({'success': False, 'message': 'Invalid ID token: '+ str(e)}), 401
         except auth.ExpiredIdTokenError:
             return jsonify({'success': False, 'message': 'Expired ID token'}), 401
         except Exception as e:
-            return jsonify({'success': False, 'message': 'Authentication error'}), 500
+            return jsonify({'success': False, 'message': 'Authentication error: '+ str(e)}), 500
     else:
         return jsonify({'success': False, 'message': 'No idToken provided'}), 400
+    
+# Logout endpoint
+@app.route('/logout')
+def logout():
+    session.pop('user_id', None)
+    return 'Logged out'
 
 
-# Burada kullanıcının login olup olmadığını kontrol etmek için bir istek kullanıyoruz.
-@app.route('/check_login')
-def check_login():
-    # Bu örnekte, her zaman oturum açmış kabul ediyoruz
-    return jsonify({"logged_in": True})
+@app.route('/check_session')
+def check_session():
+    print(session)
+    if 'user_id' in session:
+        return jsonify({'logged_in': True})
+    else:
+        return jsonify({'logged_in': False})
 
 # Burada qdrant'ta search işlemlerini yapacak. Eğer benzer bir veri görürse
 # ve bu veri kullanıcının dataseti'nde yok ise ekleyecek var ise bir şey yapmayacak.
@@ -128,7 +142,7 @@ def qdrantSearch():
             print(nameOfDiet)
             global user_id
             print(user_id)
-            firebase.put(f'users/DKwLD419QXVzTpNRANDa0zzefLs2/diets',nameOfDiet,description)
+            firebase.put(f"users/{session['user_id']}/diets",nameOfDiet,description)
 
     return jsonify({'success': True}), 200
     
@@ -137,17 +151,21 @@ def qdrantSearch():
 # Burada kullanıcı login olmuş ise eğer onun database'inden alışkanlıklarını almak için kullanacağız.
 @app.route('/fireBaseDiyetPull', methods=['GET'])
 def pullDiets():
-    result = firebase.get(f'users/DKwLD419QXVzTpNRANDa0zzefLs2',None)
+    result = firebase.get(f"users/{session['user_id']}",None)
     print(result['diets'])
+    diets = result['diets']
+    if diets[0] == '':
+        del diets[0]
     
-    return result['diets']
+    return diets
+    
 
 # burayı bilerek GET yaptım düzeltmeyin DELETE yazınca çalışmıyor
 @app.route('/dietRemove/<dietName>', methods=['GET'])
 def removeTheDiet(dietName):
     try:
         # Attempt to delete the diet from Firebase
-        result = firebase.delete('users/DKwLD419QXVzTpNRANDa0zzefLs2/diets/',dietName)
+        result = firebase.delete("users/{session['user_id']}/diets/",dietName)
         print(result)
         return jsonify(result), 200
     except Exception as e:
@@ -173,11 +191,17 @@ def openAiRequest():
     )
     """
     global user_id
-    result = firebase.get(f'users/DKwLD419QXVzTpNRANDa0zzefLs2',None)
+    result = firebase.get(f"users/{session['user_id']}",None)
     diet_names_string = "this user follows "
     print(result['diets'])
-    diet_names = [key for key, value in result['diets'].items()]
-    diet_names_string = ', '.join(diet_names)
+    diets = result['diets']
+    if diets[0] == '':
+        del diets[0]
+    if len(diets) > 0:
+        diet_names = [key for key, value in diets.items()]
+        diet_names_string = ', '.join(diet_names)
+    else:
+        diet_names_string = diet_names_string + " no diets "
 
     userAllergies = result['allergies']
     trueUserAllergies = [key for key, value in userAllergies.items() if value] # Burada sadece true değere sahip 
@@ -199,7 +223,7 @@ def openAiRequest():
         thread = clientOpenAi.beta.threads.create()
         threadId = thread.id
         print(threadId)
-        firebase.put(f'users/DKwLD419QXVzTpNRANDa0zzefLs2/','threadId',threadId)    
+        firebase.put(f"users/{session['user_id']}/",'threadId',threadId)    
 
     print("-------Thread------")
     print(allergiDietMessage)
