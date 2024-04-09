@@ -2,6 +2,7 @@ import React from 'react'
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { getAuth, signOut } from "firebase/auth";
+import logo from './logo.png'
 
 function Navbar({onLogoutSuccess}) {
   const navigate = useNavigate()
@@ -31,13 +32,14 @@ function Navbar({onLogoutSuccess}) {
           <div className="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8">
             <div className="flex items-center justify-between h-16">
               <div className="flex-shrink-0">
-                <span className="text-white font-semibold text-lg">Yemek Asistanım</span>
+                <img src={logo} alt="Logo" style={{ width: '140px', height: 'auto' }} />
               </div>
               <div className="hidden md:block">
                 <div className="ml-10 flex items-baseline space-x-4">
                   <Link to="/" className="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Recipe</Link>
                   <Link to="Allergies" className="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Allergies</Link>
                   <Link to="Diets" className="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Diets</Link>
+                  <Link to="Health" className="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Health Tip</Link>
                   <Link to="Profile" className="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Profile</Link>
                   <button onClick={handleLogout} className="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium" style={{backgroundColor:"rgb(20, 26, 36)"}}>Logout</button>
                 </div>

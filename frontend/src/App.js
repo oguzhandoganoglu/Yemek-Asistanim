@@ -10,6 +10,8 @@ import Login from "./Pages/login";
 import axios from 'axios';
 import {Rings} from 'react-loader-spinner';
 import { initializeApp } from 'firebase/app';
+import Health from './Pages/health';
+
 
 const firebaseConfig = {
     apiKey: "AIzaSyD1dsZ590gGskokLvT40AlvpBfClaEAECk",
@@ -63,29 +65,36 @@ function App() {
               visible={true}
               height="140"
               width="140"
-              color="#1f2937"
+              color="#fff"
               ariaLabel="rings-loading"
               wrapperStyle={{
                 display: "flex",
                 justifyContent: "center",
                 alignItems: "center",
                 height: "100vh",
-                backgroundColor: "#f7f7f700",
+                backgroundColor: "#1f2937",
               }}
               wrapperClass=""
             />
-          ) : isLoggedIn && (
+          ) : isLoggedIn ? (
             // User is logged in
-            <Navbar onLogoutSuccess={handleLoginSuccess} />
-        )}
-        <Routes>
-          <Route path="/" element={isLoggedIn ? <Recipe/> : <Login onLoginSuccess={handleLoginSuccess}/>}/>
-          <Route path="Allergies" element={isLoggedIn ? <Allergies/> : <Login onLoginSuccess={handleLoginSuccess}/>}/>
-          <Route path="Diets" element={isLoggedIn ? <Diets/> : <Login onLoginSuccess={handleLoginSuccess}/>}/>
-          <Route path="Profile" element={isLoggedIn ? <Profile/> : <Login onLoginSuccess={handleLoginSuccess}/>}/>
-          <Route path="Signup" element={<Signup/>}/>
-          <Route path="login" element={<Login onLoginSuccess={handleLoginSuccess}/>}/>
-        </Routes>
+            <>
+              <Navbar onLogoutSuccess={handleLoginSuccess} />
+              <Routes>
+                <Route path="/" element={<Recipe />} />
+                <Route path="Allergies" element={<Allergies />} />
+                <Route path="Diets" element={<Diets />} />
+                <Route path="Profile" element={<Profile />} />
+                <Route path="Health" element={<Health />} />
+              </Routes>
+            </>
+          ) : (
+            // User is not logged in
+            <Routes>
+              <Route path="*" element={<Login onLoginSuccess={handleLoginSuccess} />} />
+              <Route path="Signup" element={<Signup />} />
+            </Routes>
+          )}
       </BrowserRouter>
     </div>
   );

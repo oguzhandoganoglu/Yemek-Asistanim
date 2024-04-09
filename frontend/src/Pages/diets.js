@@ -6,11 +6,6 @@ import axios from 'axios';
 import Modal from 'react-modal';
 import './Recipe.css';
 
-const dietsData = [
-  { id: 1, name: 'Keto', definition: 'A diet high in fat and low in carbs.' },
-  { id: 2, name: 'Paleo', definition: 'A diet based on the types of foods presumed to have been eaten by early humans.' },
-  // Add more diets as needed
-];
 
 function Diets() {
   const [diets, setDiets] = useState([]);
@@ -26,7 +21,8 @@ function Diets() {
           id: name, // Use the diet name as a unique key
           name,
           definition
-        }));
+        }))
+        .filter(diet => diet.definition.trim() !== ''); // Filter out diets with empty definition
         setDiets(fetchedDiets);
       })
       .catch(error => {
@@ -49,7 +45,9 @@ function Diets() {
             id: name, // Use the diet name as a unique key
             name,
             definition
-          }));
+          }))
+          .filter(diet => diet.definition.trim() !== ''); // Filter out diets with empty definition
+        
           setDiets(fetchedDiets);
         })
         .catch(error => {
