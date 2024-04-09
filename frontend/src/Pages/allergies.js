@@ -1,125 +1,164 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import backgroundImage from './background.jpg'; // Background image import edildi
 
-const productsData = [
-  { id: 1, name: 'Süt' },
-  { id: 2, name: 'Yumurta' },
-  { id: 3, name: 'Gluten' },
-  { id: 4, name: 'Fıstık' },
-  // Daha fazla ürün eklenebilir.
+const allergiesData = [
+  { id: 'celery', name: 'Celery', value: false },
+  { id: 'crustaceans', name: 'Crustaceans', value: false },
+  { id: 'egg', name: 'Egg', value: false },
+  { id: 'fish', name: 'Fish', value: false },
+  { id: 'gluten', name: 'Gluten', value: false },
+  { id: 'lupin', name: 'Lupin', value: false },
+  { id: 'milk', name: 'Milk', value: false },
+  { id: 'moluscs', name: 'Moluscs', value: false },
+  { id: 'mustard', name: 'Mustard', value: false },
+  { id: 'peanuts', name: 'Peanuts', value: false },
+  { id: 'sesame', name: 'Sesame', value: false },
+  { id: 'soy', name: 'Soy', value: false },
 ];
 
 function AlerjiListesi() {
-  const [query, setQuery] = useState('');
-  const [selectedProducts, setSelectedProducts] = useState([]);
-
-  const filteredProducts = query
-    ? productsData.filter(product =>
-        product.name.toLowerCase().includes(query.toLowerCase())
-      )
-    : [];
-
-  const addProduct = (product) => {
-    if (!selectedProducts.find(p => p.id === product.id)) {
-      setSelectedProducts([...selectedProducts, product]);
-    }
+  const [selectedAllergies, setSelectedAllergies] = useState(allergiesData);
+  // http://localhost:5000/check_loginsession
+  const checkLoginSession = () => {
+    fetch('http://127.0.0.1:5000/check_loginsession', {
+      method: 'GET',
+      credentials: 'include'  // Ensure cookies are sent with the request
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.logged_in) {
+        console.log("User is logged in with ID:", data.user_id);
+      } else {
+        console.log("User is not logged in.");
+      }
+    })
+    .catch(error => {
+      console.error("Error checking login session:", error);
+    });
   };
 
-  const removeProduct = (id) => {
-    setSelectedProducts(selectedProducts.filter(product => product.id !== id));
+  useEffect(() => {
+    checkLoginSession();
+  }, []);
+
+  const updateAllergiesInBackend = (allergies) => {
+    fetch('http://127.0.0.1:5000/update_allergies', { // Sunucu URL'niz
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(allergies),
+      credentials: 'include'
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        console.log("Allergies updated successfully");
+      } else {
+        console.error("Failed to update allergies:", data.message);
+      }
+    })
+    .catch(error => {
+      console.error("Error updating allergies:", error);
+    });
   };
 
-  // Inline styles
+  const toggleCheckbox = (id) => {
+    const updatedAllergies = selectedAllergies.map(allergy =>
+      allergy.id === id ? { ...allergy, value: !allergy.value } : allergy
+    );
+    setSelectedAllergies(updatedAllergies);
+    const allergiesForBackend = updatedAllergies.reduce((acc, allergy) => {
+      acc[allergy.id] = allergy.value;
+      return acc;
+    }, {});
+    updateAllergiesInBackend(allergiesForBackend);
+  };
+
+  const handleAllergySubmission = (updatedAllergies) => {
+    const allergiesForBackend = updatedAllergies.reduce((acc, allergy) => {
+      acc[allergy.id] = allergy.value;
+      return acc;
+    }, {});
+    updateAllergiesInBackend(allergiesForBackend);
+  };
+
+  // Inline styles updated
   const styles = {
     container: {
+      backgroundImage: `url(${backgroundImage})`,
+      backgroundSize: "cover",
+      backgroundPosition: "center",
+      backgroundRepeat: "no-repeat",
+      width: '100vw',
+      height: 'auto', // Changed from 100vh to auto
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
-      justifyContent: 'center',
-      marginTop: '0px', // Sayfa başlangıcından itibaren üst boşluk
-      width: '50%', // Sayfa genişliğinin %50'sini kaplar
-      minWidth: '300px', // Minimum genişlik
-      maxWidth: '600px', // Maksimum genişlik
-      height: '100vh', // Yükseklik, viewport'un yüksekliği ile aynı olacak
+      justifyContent: 'flex-start', // Changed from center to flex-start
+      paddingTop: '70px', // Adjusted padding to ensure no overlap with the top menu
+      paddingBottom: '50px',
+      boxSizing: 'border-box',
     },
     header: {
       fontSize: '24px',
-      color: '#333',
-      margin: '10px 0',
+      fontWeight: '300',
+      backgroundColor: 'rgb(31, 41, 55)',
+      color: 'white',
+      padding: '10px 20px',
+      borderRadius: '5px',
+      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+      marginBottom: '20px',
+      textAlign: 'center',
+      width: '80%',
     },
     panel: {
-      border: '2px solid #007bff', // Renkli çerçeve
+      backgroundColor: 'rgba(255, 255, 255, 0.650)',
+      padding: '20px',
+      width: '80%',
+      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
       borderRadius: '5px',
-      padding: '10px',
-      width: '100%',
-      boxSizing: 'border-box', // Padding'i genişliğe dahil et
-      marginBottom: '20px',
-    },
-    selectedProducts: {
       display: 'flex',
-      flexWrap: 'wrap',
-      justifyContent: 'center',
+      flexDirection: 'column',
+      alignItems: 'center',
     },
-    product: {
-      margin: '5px',
-      padding: '5px',
-      border: '1px solid #ccc',
-      borderRadius: '5px',
-      cursor: 'pointer',
-    },
-    searchInput: {
-      padding: '10px',
-      marginBottom: '10px',
-      width: 'calc(100% - 20px)', // Çerçevenin içinde doğru oturması için
-      border: 'none',
-    },
-    productList: {
+    checkboxContainer: {
       width: '100%',
+      margin: '10px 0',
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
     },
-    saveButton: { // Yeni buton için stil tanımı
-      padding: '10px 20px',
-      margin: '10px 0', // Butonun üst ve altında biraz boşluk
-      backgroundColor: 'green', // Yeşil arka plan
-      color: 'white', // Beyaz yazı rengi
-      fontSize: '16px', // Font büyüklüğü
-      border: 'none', // Çerçevesiz
-      borderRadius: '5px', // Hafif yuvarlak köşeler
-      cursor: 'pointer', // Fare imlecini tıklanabilir olarak değiştir
-    }
+    label: {
+      cursor: 'pointer',
+      display: 'flex',
+      alignItems: 'center',
+    },
+    checkbox: {
+      margin: '0 10px 0 0',
+      display: 'block',
+      transform: 'scale(0.8)',
+    },
   };
 
   return (
     <div style={styles.container}>
-      <div style={styles.header}>Alerji Listesi</div>
+      <div style={styles.header}>Allergy Checklist</div>
       <div style={styles.panel}>
-        <div style={styles.selectedProducts}>
-          {selectedProducts.map(product => (
-            <div key={product.id} style={styles.product} onClick={() => removeProduct(product.id)}>
-              {product.name}
-            </div>
-          ))}
-        </div>
+        {selectedAllergies.map(allergy => (
+          <div key={allergy.id} style={styles.checkboxContainer}>
+            <label style={styles.label}>
+              <input
+                type="checkbox"
+                checked={allergy.value}
+                onChange={() => toggleCheckbox(allergy.id)}
+                style={styles.checkbox}
+              />
+              {allergy.name}
+            </label>
+          </div>
+        ))}
       </div>
-      <div style={styles.panel}>
-        <input
-          type="text"
-          placeholder="Ürün ara..."
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          style={styles.searchInput}
-        />
-        <div style={styles.productList}>
-          {filteredProducts.map(product => (
-            <div
-              key={product.id}
-              onClick={() => addProduct(product)}
-              style={styles.product}
-            >
-              {product.name}
-            </div>
-          ))}
-        </div>
-      </div>
-      <button style={styles.saveButton}>Kaydet</button>
     </div>
   );
 }
