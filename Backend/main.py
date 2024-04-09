@@ -6,7 +6,7 @@ from sentence_transformers import SentenceTransformer
 import time
 from firebase import firebase
 import firebase_admin
-from firebase_admin import credentials, auth
+from firebase_admin import credentials, auth, db
 import json
 #import pyrebase
 
@@ -29,7 +29,10 @@ collection_name = "yemek_asistani"
 firebase = firebase.FirebaseApplication('https://yemek-asistani-default-rtdb.europe-west1.firebasedatabase.app/', None)
 
 cred = credentials.Certificate('./yemek-asistani-firebase-adminsdk-g0mzc-a20c15214f.json')
-firebase_admin.initialize_app(cred)
+firebase_app = firebase_admin.initialize_app(cred, {
+    'databaseURL': 'https://yemek-asistani-default-rtdb.europe-west1.firebasedatabase.app/'
+})
+#firebase_admin.initialize_app(cred)
 
 clientOpenAi = openai.OpenAI(api_key="")
 asisstantId = ""
@@ -44,7 +47,7 @@ app = Flask(__name__)
 app.secret_key = 'yemek_asistanim_secret_key'
 CORS(app, supports_credentials=True)
 logged_in = False
-app.config.update(SESSION_COOKIE_SAMESITE="None", SESSION_COOKIE_SECURE=True)
+app.config.update(SESSION_COOKIE_SAMESITE="None", SESSION_COOKIE_SECURE=False)#çerezleri kontrol etmek için geçici olarak false olarak ayarlandı
 
 @app.route("/")
 def anasayfa():
@@ -103,6 +106,37 @@ def login():
 def logout():
     session.pop('user_id', None)
     return 'Logged out'
+
+
+# check
+@app.route('/check_loginsession')
+def check_loginsession():
+    print("Checking login session...")  # Session kontrolü başlıyor
+    print("Current session keys and values:", dict(session))  # Mevcut session anahtarları ve değerleri
+    if 'user_id' in session:
+        print(f"User is logged in with ID: {session['user_id']}")  # Kullanıcı giriş yapmış, ID'si gösteriliyor
+        return jsonify({'logged_in': True, 'user_id': session['user_id']})
+    else:
+        print("User is not logged in.")  # Kullanıcı giriş yapmamış
+        return jsonify({'logged_in': False})
+ 
+
+# Allergies sayfasından alerji seçimlerini veritabanına aktarmak için
+@app.route('/update_allergies', methods=['POST'])
+def update_allergies():
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'success': False, 'message': 'User not logged in'}), 403
+
+    try:
+        allergies_data = request.json
+        ref = db.reference(f'/users/{user_id}/allergies', app=firebase_app)  # Uygulama örneğini belirtmek önemli
+        ref.set(allergies_data)
+        return jsonify({'success': True}), 200
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
 
 
 @app.route('/check_session')
