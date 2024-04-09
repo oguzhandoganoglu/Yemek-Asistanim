@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import backgroundImage from './background.jpg'; // Background image import edildi
+import axios from 'axios';
 
 const allergiesData = [
   { id: 'celery', name: 'Celery', value: false },
@@ -38,7 +39,19 @@ function AlerjiListesi() {
   };
 
   useEffect(() => {
-    checkLoginSession();
+    // Fetch the allergies data when the component mounts
+    axios.get('http://127.0.0.1:5000/allergiesPull')
+      .then(response => {
+        const fetchedAllergies = Object.entries(response.data).map(([name, value]) => ({
+          id: name,
+          name: name,
+          value: value
+        }))
+        setSelectedAllergies(fetchedAllergies);
+      })
+      .catch(error => {
+        console.error('Error fetching allergies:', error);
+      });
   }, []);
 
   const updateAllergiesInBackend = (allergies) => {

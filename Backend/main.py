@@ -47,7 +47,7 @@ app = Flask(__name__)
 app.secret_key = 'yemek_asistanim_secret_key'
 CORS(app, supports_credentials=True)
 logged_in = False
-app.config.update(SESSION_COOKIE_SAMESITE="None", SESSION_COOKIE_SECURE=False)#çerezleri kontrol etmek için geçici olarak false olarak ayarlandı
+app.config.update(SESSION_COOKIE_SAMESITE="None", SESSION_COOKIE_SECURE=True)
 
 @app.route("/")
 def anasayfa():
@@ -135,9 +135,13 @@ def update_allergies():
         return jsonify({'success': True}), 200
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500
-
-
-
+    
+@app.route('/allergiesPull', methods=['GET'])
+def pullallergies():
+    result = firebase.get(f"users/{session['user_id']}",None)
+    print(result['allergies'])
+    allergies = result['allergies']
+    return allergies
 
 @app.route('/check_session')
 def check_session():
