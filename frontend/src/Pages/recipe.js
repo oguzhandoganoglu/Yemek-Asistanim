@@ -8,25 +8,6 @@ import axios from 'axios';
 import {Rings} from 'react-loader-spinner';
 
 Modal.setAppElement('#root');
-// Dummy data for the recipe suggestion
-Recipe.defaultProps = {
-  recipe : {
-  title: 'Spaghetti Carbonara',
-  description: "Ingredients:\n - 350g (12 oz) spaghetti"+
-  "\n - 200g (7 oz) pancetta or bacon, diced\n  - 3 large eggs\n  - 75g (2.5 oz) grated Parmesan cheese\n"+
-  " - 50g (1.75 oz) grated Pecorino Romano cheese\n  - Freshly ground black pepper, to taste"+
-  "\n- Salt, to taste\n  - 2 cloves garlic, minced (optional)\n- 1 tablespoon olive oil\n\nInstructions:"+
-  "\n1. Start by bringing a large pot of salted water to a boil. Cook the spaghetti according to package instructions until al dente."+
-  "\n\n2. While the pasta is cooking, heat the olive oil in a large skillet over medium heat. Add the diced pancetta or bacon and cook until crispy, about 5-7 minutes. If you're using garlic, add it to the skillet during the last minute of cooking the pancetta or bacon, being careful not to burn it."+
-  "\n\n  3. In a mixing bowl, whisk together the eggs, grated Parmesan, and grated Pecorino Romano cheese. Season with a generous amount of freshly ground black pepper."+
-  "\n\n  4. Once the spaghetti is cooked, drain it, reserving about 1/2 cup of the pasta water."+
-  "\n\n5. Add the drained spaghetti to the skillet with the cooked pancetta or bacon, tossing to combine."+
-  "\n\n6. Remove the skillet from heat and quickly pour the egg and cheese mixture over the hot spaghetti. Toss the spaghetti continuously with tongs or a fork, ensuring the eggs evenly coat the pasta. If the sauce seems too thick, add a bit of the reserved pasta water until you reach your desired consistency."+
-  "\n\n7. Serve the spaghetti carbonara immediately, garnished with extra grated Parmesan cheese and black pepper if desired."+
-  "\n\n  Enjoy your delicious homemade spaghetti carbonara!\n",
-  
-  }
-};
 
 function Recipe() {
   const [liked, setLiked] = useState(null);
@@ -34,7 +15,8 @@ function Recipe() {
   const [dislikeReason, setDislikeReason] = useState('');
   const [showRecipe, setShowRecipe] = useState(false);
   const [recipeData, setRecipeData] = useState({ title: '', instructions:[], ingredients:[] }); // State to store recipe data
-  const [isLoading, setIsLoading] = useState(false); 
+  const [isLoading, setIsLoading] = useState(false);
+  const [recipeToSend, setRecipeToSend] = useState({});
 
 
   // Define the animation for the button
@@ -55,24 +37,25 @@ function Recipe() {
   const handleButtonClick = () => {
     setIsLoading(true);
     axios.get('http://127.0.0.1:5000/openAiReq').then(response => {
-      const recipeInfo = response.data.Recipe;
-      const ingredients = recipeInfo
-        .filter(item => item.Ingredient)
-        .map(item => `${item.Ingredient} ${item.Quantity}`);
-      
-      const instructions = recipeInfo
-      .find(item => item.Instructions)
-      .Instructions.map(instruction => {
-        const stepNumber = Object.keys(instruction)[0];
-        const stepInstruction = instruction[stepNumber];
-        return `${stepNumber}: ${stepInstruction}`;
+      const { meal, ingredients, instructions } = response.data;
+
+      const ingredientsToSend = ingredients.join(', ');
+      const recipeToSend = {
+        [meal]: ingredientsToSend
+      };
+
+      setRecipeToSend(recipeToSend);
+
+      const formattedInstructions = instructions.map((instruction, index) => {
+        return `Step ${index + 1}: ${instruction}`;
       });
 
       setRecipeData({
-        title: response.data.Meal,
-        instructions: instructions,
+        title: meal,
+        instructions: formattedInstructions,
         ingredients: ingredients
       });
+      
       setIsLoading(false);
       setShowRecipe(true);
     }).catch(error => {
@@ -95,7 +78,13 @@ function Recipe() {
 
   const handleLike = () => {
     setLiked(true); // Start the "liked" animation
-  
+    axios.post('http://127.0.0.1:5000/postRecipeHistory/recipeToSend', recipeToSend)
+    .then(response => {
+      console.log(response.data);
+    })
+    .catch(error => {
+      console.error('There was an error!', error);
+    });
     // Wait for the animation to complete before resetting states
     setTimeout(() => {
       setLiked(null); // Reset the liked state
@@ -181,14 +170,14 @@ function Recipe() {
           <div className="recipe-card" style={{ textAlign: 'left', maxWidth: '600px', margin: 'auto' }}>
             <h3>{recipeData.title}</h3>
             <div style={{backgroundColor:"rgb(31, 41, 55)"}}>
-            <h4 style={{paddingLeft:"20px", color:"#fff"}}>Ingredients:</h4>
-            <ul style={{paddingLeft:"30px", paddingRight:"10px", color:"#fff"}}>
+            <h4 style={{paddingLeft:"20px", color:"#fff"}}><strong>Ingredients:</strong></h4>
+            <ul style={{paddingLeft:"40px", paddingRight:"10px", color:"#fff", listStyleType: 'disc'}}>
               {recipeData && recipeData.ingredients && recipeData.ingredients.map((ingredient, index) => (
                 <li key={index}>{ingredient}</li>
               ))}
             </ul>
 
-            <h4 style={{paddingLeft:"20px", color:"#fff"}}>Instructions:</h4>
+            <h4 style={{paddingLeft:"20px", color:"#fff"}}><strong>Instructions:</strong></h4>
             <ol style={{paddingLeft:"30px" , paddingRight:"10px", color:"#fff"}}>
               {recipeData.instructions.map((step, index) => (
                 <li key={index}>{step}</li>

@@ -7,6 +7,7 @@ import time
 from firebase import firebase
 import firebase_admin
 from firebase_admin import credentials, auth, db
+import json
 #import pyrebase
 
 config = {
@@ -35,6 +36,7 @@ firebase_app = firebase_admin.initialize_app(cred, {
 
 clientOpenAi = openai.OpenAI(api_key="")
 asisstantId = ""
+healthAsisstantId= ""
 
 qdrant_client = QdrantClient(
     url="", 
@@ -164,9 +166,9 @@ def qdrantSearch():
         limit=1
 
     )
-    
+    print("hit:", hits)
     for hit in hits:
-        if(hit.score>0.5):
+        if(hit.score>0.4):
             print(hit.payload, "score:", hit.score)
             nameOfDiet=hit.payload['text']
             description = nameOfDiet
@@ -174,12 +176,10 @@ def qdrantSearch():
             nameOfDiet = nameOfDiet[:indexOfDiet]
             nameOfDiet = nameOfDiet + "diet"
             print(nameOfDiet)
-            global user_id
-            print(user_id)
             firebase.put(f"users/{session['user_id']}/diets",nameOfDiet,description)
-
-    return jsonify({'success': True}), 200
-    
+            return jsonify({'success': True}), 200
+        else:
+            return jsonify({"error": "cant find diet"}), 500
 
 
 # Burada kullanıcı login olmuş ise eğer onun database'inden alışkanlıklarını almak için kullanacağız.
@@ -188,18 +188,70 @@ def pullDiets():
     result = firebase.get(f"users/{session['user_id']}",None)
     print(result['diets'])
     diets = result['diets']
-    if diets[0] == '':
-        del diets[0]
-    
     return diets
-    
 
+@app.route('/pullTip', methods=['GET'])
+def pullTip():
+    result = firebase.get(f"users/{session['user_id']}",None)
+    if 'healthTip' in result:
+        return result['healthTip']
+    else:
+        if 'recipeHistory' in result:
+            return healthAiRequest()
+        else:
+            return ""
+    
+@app.route('/getCountry', methods=['GET'])
+def getCountry():
+    result = firebase.get(f"users/{session['user_id']}",None)
+    if 'country' in result:
+        return result['country']
+    else:
+        return ''
+    
+@app.route('/saveCountry', methods=['POST'])
+def saveCountry():
+    country_data = request.get_json();
+    try:
+        result = firebase.put(f"users/{session['user_id']}/",'country',country_data['country'])
+        return jsonify(result), 200
+    except Exception as e:
+        # Print the error if something goes wrong
+        print(f"An error occurred: {e}")
+        return jsonify({"error": str(e)}), 500
+
+        
+@app.route('/getUsername', methods=['GET'])
+def getUsername():
+    result = firebase.get(f"users/{session['user_id']}/",'username')
+    return result
+
+@app.route('/getEmail', methods=['GET'])
+def getEmail():
+    result = firebase.get(f"users/{session['user_id']}/",'email')
+    return result
+# burayı bilerek GET yaptım düzeltmeyin DELETE yazınca çalışmıyor
+@app.route('/clearRecipeHistory', methods=['GET'])
+def clearRecipeHistory():
+    try:
+        result = firebase.get(f"users/{session['user_id']}",None)
+        if 'recipeHistory' in result:
+            # Attempt to delete the diet from Firebase
+            firebase.delete(f"users/{session['user_id']}/",'recipeHistory')
+            return jsonify(result), 200
+        else:
+            return jsonify({"message": "There is no recipe history to delete"}), 404
+    except Exception as e:
+        # Print the error if something goes wrong
+        print(f"An error occurred: {e}")
+        return jsonify({"error": str(e)}), 500
+    
 # burayı bilerek GET yaptım düzeltmeyin DELETE yazınca çalışmıyor
 @app.route('/dietRemove/<dietName>', methods=['GET'])
 def removeTheDiet(dietName):
     try:
         # Attempt to delete the diet from Firebase
-        result = firebase.delete("users/{session['user_id']}/diets/",dietName)
+        result = firebase.delete(f"users/{session['user_id']}/diets/",dietName)
         print(result)
         return jsonify(result), 200
     except Exception as e:
@@ -224,15 +276,12 @@ def openAiRequest():
         ]
     )
     """
-    global user_id
     result = firebase.get(f"users/{session['user_id']}",None)
     diet_names_string = "this user follows "
     print(result['diets'])
     diets = result['diets']
-    if diets[0] == '':
-        del diets[0]
-    if len(diets) > 0:
-        diet_names = [key for key, value in diets.items()]
+    if len(diets) > 1:
+        diet_names = [key for key, value in diets.items() if key != "0"]
         diet_names_string = ', '.join(diet_names)
     else:
         diet_names_string = diet_names_string + " no diets "
@@ -242,6 +291,9 @@ def openAiRequest():
     allergies_string = ", ".join(trueUserAllergies)
     allergies_string = "allergic to " + allergies_string
     allergiDietMessage = diet_names_string +" and is "+ allergies_string
+
+    if 'country' in result:
+        allergiDietMessage = allergiDietMessage + ". Also mind that this user lives in " + result['country'] + " so the ingredients can be accessible."
 
     print(allergiDietMessage)
     print("-------Thread------")
@@ -278,6 +330,84 @@ def openAiRequest():
 
     return new_message
 
+@app.route('/postRecipeHistory/recipeToSend', methods=['POST'])
+def postRecipeHistory():
+    recipe_to_send = request.get_json()  # This will parse the JSON object sent with the POST request
+    print(recipe_to_send)
+    result = firebase.get(f"users/{session['user_id']}",None)
+    if recipe_to_send is not None:
+        recipeName = list(recipe_to_send.keys())[0]  # Gets the first key
+        recipeIngredients = recipe_to_send[recipeName]
+        if 'recipeHistory' in result:
+            print("Tarif geçmişi bulundu.")
+            
+            print(result['recipeHistory'])
+            firebase.put(f"users/{session['user_id']}/recipeHistory/",recipeName,recipeIngredients)
+            return 'Success', 200
+            print("-----------------")
+        else:
+            firebase.put(f"users/{session['user_id']}/",'recipeHistory',recipe_to_send)
+            return 'Success', 200
+    else:
+        return 'Fail', 500
+
+@app.route('/healthAiReq')
+def healthAiRequest():
+    result = firebase.get(f"users/{session['user_id']}",None)
+    recipes_string = "this user made and consumed the recipes: "
+    
+    print("-------Recipe history------")
+    if 'recipeHistory' in result:
+        print("Tarif geçmişi bulundu.")
+        
+        print(result['recipeHistory'])
+        recipes = result['recipeHistory']
+        recipes_string = recipes_string + ', '.join(f'{key}: {value}' for key, value in recipes.items())
+ 
+        print(recipes_string)
+        print("-----------------")
+        if 'healthThreadId' in result:
+            print("Anahtar bulundu.")
+            threadId = result['healthThreadId']
+            print(threadId)
+            print("-----------------")
+            # burada thread_id bilgisi database'den alınacak. Daha sonrasında aşağıdaki gibi o thread retrive edilecek.
+            thread = clientOpenAi.beta.threads.retrieve(threadId)
+        else:
+            print("Anahtar bulunamadı.")
+            thread = clientOpenAi.beta.threads.create()
+            threadId = thread.id
+            print(threadId)
+            firebase.put(f"users/{session['user_id']}/",'healthThreadId',threadId)    
+
+        print("-------Thread------")
+
+        message = clientOpenAi.beta.threads.messages.create(
+            thread_id=threadId,
+            role="user",
+            content=recipes_string
+        )
+        run = clientOpenAi.beta.threads.runs.create(
+            thread_id=threadId,
+            assistant_id=healthAsisstantId
+        )
+        while run.status != "completed":
+            time.sleep(0.5)
+            run = clientOpenAi.beta.threads.runs.retrieve(thread_id=threadId, run_id=run.id)
+        responses= clientOpenAi.beta.threads.messages.list(thread_id=threadId)
+        new_message = responses.data[0].content[0].text.value
+        print("-------Recipe History------")
+        
+        new_message = json.loads(new_message)
+        firebase.put(f"users/{session['user_id']}/",'healthTip',new_message)
+        
+        return new_message
+    else:
+        print("Tarif geçmişi bulunamadı.")
+        recipes_string = ""
+        print("--------------------------")
+        return recipes_string
+    
     
 """"
     message = "Keto Diet"
@@ -299,18 +429,6 @@ def openAiRequest():
     return new_message
 """
 
-
-@app.route('/submit', methods=['POST'])
-def submit():
-  if request.method == 'POST' and len(dict(request.form)) > 0:
-    userdata = dict(request.form)
-    name = userdata["name"]
-    description = userdata["description"]
-    new_data = {"name": name, "description": description}
-    firebase.post("/users/diets", new_data)
-    return "Thank you!"
-  else:
-    return "Sorry, there was an error."
 
 if __name__ == "__main__":
     app.run(debug=True)
