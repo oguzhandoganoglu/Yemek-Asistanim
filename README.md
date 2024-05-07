@@ -74,5 +74,6 @@ Sistem Mimarisi
 
  
 Veritabanı Şeması
-![image](https://github.com/oguzhandoganoglu/Yemek-Asistanim/assets/78206007/def07bad-e314-4aea-85fb-453cd283a3df)
+<img width="454" alt="image" src="https://github.com/oguzhandoganoglu/Yemek-Asistanim/assets/78206007/965c3469-cc54-41ae-bc58-4ba0175ec6a7">
+
 
